@@ -1,4 +1,4 @@
-module github.com/iKOPKACtraxa/hw01_hello_otus
+module github.com/iKOPKACtraxa/otus-hw/hw01_hello_otus
 
 go 1.16
 
