@@ -12,6 +12,11 @@ type List interface {
 	MoveToFront(i *ListItem)
 }
 
+// NewList создает новый *list в интерфейсе List.
+func NewList() List {
+	return new(list)
+}
+
 type ListItem struct {
 	Value interface{}
 	Next  *ListItem
@@ -71,13 +76,13 @@ func (l *list) Remove(i *ListItem) {
 	l.length--
 }
 
-// MoveToFront перемещает элемент в начало.
+// MoveToFront перемещает элемент в начало списка.
 func (l *list) MoveToFront(i *ListItem) {
 	l.unbind(i)
 	l.bindToFront(i)
 }
 
-// listIsEmpty проверяет пуст ли список, если да, то это готовит первый элемент для списка.
+// listIsEmpty проверяет пуст ли список, если да, то готовит первый элемент для списка.
 func (l *list) listIsEmpty(v interface{}) (*ListItem, bool) {
 	if l.Len() == 0 {
 		l.first = &ListItem{v, nil, nil}
@@ -101,7 +106,7 @@ func (l *list) bindToFront(i *ListItem) {
 	}
 }
 
-// bindToBack привязывает элемент в начале списка, симметричен bindToFront.
+// bindToBack привязывает элемент в конце списка, симметричен bindToFront.
 func (l *list) bindToBack(i *ListItem) {
 	saveLast := l.Back()
 	i.Next = nil
@@ -142,9 +147,4 @@ func (l *list) String() string {
 		fmt.Print(i.Value, " ")
 	}
 	return ""
-}
-
-// NewList создает новый *list в интерфейсе List.
-func NewList() List {
-	return new(list)
 }
