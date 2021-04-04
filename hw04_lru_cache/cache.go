@@ -18,7 +18,6 @@ type lruCache struct {
 	capacity int
 	queue    List
 	items    map[Key]*ListItem
-	itemsRev map[*ListItem]Key
 }
 
 type cacheItem struct {
@@ -28,12 +27,14 @@ type cacheItem struct {
 
 // NewCache создает новый *lruCache в интерфейсе Cache.
 func NewCache(capacity int) Cache {
-	return &lruCache{
-		capacity: capacity,
-		queue:    NewList(),
-		items:    make(map[Key]*ListItem, capacity),
-		itemsRev: make(map[*ListItem]Key, capacity),
+	if capacity > 0 {
+		return &lruCache{
+			capacity: capacity,
+			queue:    NewList(),
+			items:    make(map[Key]*ListItem, capacity),
+		}
 	}
+	return nil
 }
 
 // Get получает элемент по ключу:
@@ -42,18 +43,14 @@ func NewCache(capacity int) Cache {
 func (l *lruCache) Get(key Key) (interface{}, bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	cacheItem := cacheItem{
-		key:   key,
-		value: nil,
-	}
 	var ok bool
 	var listItem *ListItem
-	if listItem, ok = l.items[cacheItem.key]; ok {
+	if listItem, ok = l.items[key]; ok {
 		l.queue.MoveToFront(listItem)
 	} else {
-		listItem = &ListItem{Value: nil}
+		listItem = &ListItem{Value: &cacheItem{value: nil}}
 	}
-	return listItem.Value, ok
+	return listItem.Value.(*cacheItem).value, ok
 }
 
 // Set добавляет элемент по ключу и значению:
@@ -65,26 +62,17 @@ func (l *lruCache) Get(key Key) (interface{}, bool) {
 func (l *lruCache) Set(key Key, value interface{}) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	cacheItem := cacheItem{
-		key:   key,
-		value: value,
-	}
 	var ok bool
-	if _, ok = l.items[cacheItem.key]; ok {
-		l.items[cacheItem.key].Value = cacheItem.value
-		l.queue.MoveToFront(l.items[cacheItem.key])
+	var listItem *ListItem
+	if listItem, ok = l.items[key]; ok {
+		listItem.Value.(*cacheItem).value = value
+		l.queue.MoveToFront(listItem)
 	} else {
-		if l.capacity == l.queue.Len() {
-			// удаление из карт старого элемента
-			keyToDel := l.itemsRev[l.queue.Back()]
-			delete(l.itemsRev, l.queue.Back())
-			delete(l.items, keyToDel)
-			// удаление из очереди старого элемента
+		if l.capacity == l.queue.Len() { // буфер заполнен, нужно удаление одного cacheItem
+			delete(l.items, l.queue.Back().Value.(*cacheItem).key)
 			l.queue.Remove(l.queue.Back())
 		}
-		newListItem := l.queue.PushFront(cacheItem.value)
-		l.items[cacheItem.key] = newListItem
-		l.itemsRev[newListItem] = cacheItem.key
+		l.items[key] = l.queue.PushFront(&cacheItem{key: key, value: value})
 	}
 	return ok
 }

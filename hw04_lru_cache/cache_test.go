@@ -11,6 +11,9 @@ import (
 
 func TestCache(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
+		a := NewCache(0)
+		require.Nil(t, a)
+
 		c := NewCache(10)
 
 		_, ok := c.Get("aaa")
