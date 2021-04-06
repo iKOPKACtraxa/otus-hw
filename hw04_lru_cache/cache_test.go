@@ -1,6 +1,7 @@
 package hw04lrucache
 
 import (
+	"errors"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -11,10 +12,12 @@ import (
 
 func TestCache(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
-		a := NewCache(0)
+		a, err := NewCache(0)
 		require.Nil(t, a)
+		require.Truef(t, errors.Is(err, ErrInvalidCapacity), "actual error %q", err)
 
-		c := NewCache(10)
+		c, err := NewCache(10)
+		require.Truef(t, errors.Is(err, nil), "actual error %q", err)
 
 		_, ok := c.Get("aaa")
 		require.False(t, ok)
@@ -24,7 +27,7 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("simple", func(t *testing.T) {
-		c := NewCache(5)
+		c, _ := NewCache(5)
 
 		wasInCache := c.Set("aaa", 100)
 		require.False(t, wasInCache)
@@ -61,7 +64,7 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic1", func(t *testing.T) {
-		c := NewCache(3)
+		c, _ := NewCache(3)
 
 		wasInCache := c.Set("aaa", 100)
 		require.False(t, wasInCache)
@@ -92,8 +95,8 @@ func TestCache(t *testing.T) {
 		require.Equal(t, 400, val)
 	})
 	t.Run("purge logic2", func(t *testing.T) {
-		c := NewCache(3)
-
+		c, _ := NewCache(3)
+		// добавляем 3 элемента
 		wasInCache := c.Set("aaa", 100)
 		require.False(t, wasInCache)
 
@@ -102,7 +105,7 @@ func TestCache(t *testing.T) {
 
 		wasInCache = c.Set("ccc", 300)
 		require.False(t, wasInCache)
-
+		// обновляем их Set'ами и Get'ами, при этом ааа будет последним обновленным
 		val, ok := c.Get("aaa")
 		require.True(t, ok)
 		require.Equal(t, 100, val)
@@ -112,14 +115,14 @@ func TestCache(t *testing.T) {
 
 		wasInCache = c.Set("bbb", 222)
 		require.True(t, wasInCache)
-
+		// добавляем 4 элемент, он вытеснит "старый" ааа
 		wasInCache = c.Set("ddd", 444)
 		require.False(t, wasInCache)
-
+		// проверяем, что старый ааа удален
 		val, ok = c.Get("aaa")
 		require.False(t, ok)
 		require.Nil(t, val)
-
+		// проверяем, что оставшиеся в порядке
 		val, ok = c.Get("bbb")
 		require.True(t, ok)
 		require.Equal(t, 222, val)
@@ -137,7 +140,7 @@ func TestCache(t *testing.T) {
 func TestCacheMultithreading(t *testing.T) {
 	// t.Skip() // Remove me if task with asterisk completed.
 
-	c := NewCache(10)
+	c, _ := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 

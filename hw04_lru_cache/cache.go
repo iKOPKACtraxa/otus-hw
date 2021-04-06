@@ -1,6 +1,7 @@
 package hw04lrucache
 
 import (
+	"errors"
 	"sync"
 )
 
@@ -26,16 +27,18 @@ type cacheItem struct {
 }
 
 // NewCache создает новый *lruCache в интерфейсе Cache.
-func NewCache(capacity int) Cache {
+func NewCache(capacity int) (Cache, error) {
 	if capacity > 0 {
 		return &lruCache{
 			capacity: capacity,
 			queue:    NewList(),
 			items:    make(map[Key]*ListItem, capacity),
-		}
+		}, nil
 	}
-	return nil
+	return nil, ErrInvalidCapacity
 }
+
+var ErrInvalidCapacity = errors.New("invalid capacity: <= 0")
 
 // Get получает элемент по ключу:
 // - если элемент присутствует в словаре, то переместить элемент в начало очереди и вернуть его значение и true;
