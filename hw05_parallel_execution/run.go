@@ -2,7 +2,6 @@ package hw05parallelexecution
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 )
 
@@ -12,22 +11,41 @@ type Task func() error
 
 // Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
-	var wg sync.WaitGroup
-
-	for _, v := range tasks {
+	totalErrors := 0
+	toWorkerCh := make(chan Task)
+	errToReturn := error(nil)
+	wg := sync.WaitGroup{}
+	for i := 0; i < n; i++ {
 		wg.Add(1)
-		// time.Sleep(1 * time.Millisecond)
-		go func() {
+		go func() { // Горутина i-го работника, который выполняет Task()
 			defer wg.Done()
-			err := v()
-			if err != nil {
-				fmt.Println(err)
+			for {
+				task, ok := <-toWorkerCh
+				if ok {
+					err := task()
+					if err != nil {
+						mutex := sync.Mutex{}
+						mutex.Lock()
+						totalErrors++
+						mutex.Unlock()
+					}
+					if totalErrors >= m && m > 0 {
+						errToReturn = ErrErrorsLimitExceeded
+						<-toWorkerCh
+						return
+					}
+				} else {
+					return
+				}
 			}
 		}()
 	}
-	// go func() {
+	for _, task := range tasks {
+		if totalErrors < m || m <= 0 {
+			toWorkerCh <- task
+		}
+	}
+	close(toWorkerCh)
 	wg.Wait()
-	fmt.Println("this is the end")
-	// }()
-	return nil
+	return errToReturn
 }
