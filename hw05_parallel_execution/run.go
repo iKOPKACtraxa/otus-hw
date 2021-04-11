@@ -15,6 +15,7 @@ func Run(tasks []Task, n, m int) error {
 	toWorkerCh := make(chan Task)
 	errToReturn := error(nil)
 	wg := sync.WaitGroup{}
+	mutex := sync.Mutex{}
 	for i := 0; i < n; i++ {
 		wg.Add(1)
 		go func() { // Горутина i-го работника, который выполняет Task()
@@ -24,7 +25,6 @@ func Run(tasks []Task, n, m int) error {
 				if ok {
 					err := task()
 					if err != nil {
-						mutex := sync.Mutex{}
 						mutex.Lock()
 						totalErrors++
 						mutex.Unlock()
