@@ -29,10 +29,14 @@ func Run(tasks []Task, n, m int) error {
 						totalErrors++
 						mutex.Unlock()
 					}
+					mutex.Lock()
 					if totalErrors >= m && m > 0 {
+						mutex.Unlock()
 						errToReturn = ErrErrorsLimitExceeded
 						<-toWorkerCh
 						return
+					} else {
+						mutex.Unlock()
 					}
 				} else {
 					return
@@ -41,8 +45,12 @@ func Run(tasks []Task, n, m int) error {
 		}()
 	}
 	for _, task := range tasks {
+		mutex.Lock()
 		if totalErrors < m || m <= 0 {
+			mutex.Unlock()
 			toWorkerCh <- task
+		} else {
+			mutex.Unlock()
 		}
 	}
 	close(toWorkerCh)
