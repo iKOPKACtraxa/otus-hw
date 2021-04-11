@@ -35,9 +35,8 @@ func Run(tasks []Task, n, m int) error {
 						mutex.Unlock()
 						<-toWorkerCh
 						return
-					} else if b := 1; b != 999 {
-						mutex.Unlock()
 					}
+					mutex.Unlock()
 				} else {
 					return
 				}
