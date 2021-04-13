@@ -3,6 +3,7 @@ package hw05parallelexecution
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 )
 
 var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
@@ -11,48 +12,36 @@ type Task func() error
 
 // Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
-	totalErrors := 0
+	var totalErrors int32
 	toWorkerCh := make(chan Task)
-	errToReturn := error(nil)
 	wg := sync.WaitGroup{}
-	mutex := sync.Mutex{}
 	for i := 0; i < n; i++ {
 		wg.Add(1)
 		go func() { // Горутина i-го работника, который выполняет Task()
 			defer wg.Done()
-			for {
-				task, ok := <-toWorkerCh
-				if ok {
-					err := task()
-					if err != nil {
-						mutex.Lock()
-						totalErrors++
-						mutex.Unlock()
-					}
-					mutex.Lock()
-					if totalErrors >= m && m > 0 {
-						errToReturn = ErrErrorsLimitExceeded
-						mutex.Unlock()
-						<-toWorkerCh
-						return
-					}
-					mutex.Unlock()
-				} else {
+			for task := range toWorkerCh {
+				err := task()
+				if err != nil {
+					atomic.AddInt32(&totalErrors, 1)
+				}
+				if int(atomic.LoadInt32(&totalErrors)) >= m && m > 0 {
+					<-toWorkerCh // чтение последней записи из канала, чтобы освободить код на стороне записи
 					return
 				}
 			}
 		}()
 	}
 	for _, task := range tasks {
-		mutex.Lock()
-		if totalErrors < m || m <= 0 {
-			mutex.Unlock()
+		if int(atomic.LoadInt32(&totalErrors)) < m || m <= 0 {
 			toWorkerCh <- task
 		} else {
-			mutex.Unlock()
+			break
 		}
 	}
 	close(toWorkerCh)
 	wg.Wait()
-	return errToReturn
+	if int(totalErrors) >= m && m > 0 {
+		return ErrErrorsLimitExceeded
+	}
+	return nil
 }

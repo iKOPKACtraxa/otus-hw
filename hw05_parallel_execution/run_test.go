@@ -16,7 +16,7 @@ func TestRun(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
 	t.Run("if were errors in first M tasks, than finished not more N+M tasks", func(t *testing.T) {
-		tasksCount := 100
+		tasksCount := 50
 		tasks := make([]Task, 0, tasksCount)
 
 		var runTasksCount int32
@@ -69,26 +69,26 @@ func TestRun(t *testing.T) {
 	})
 }
 
-func TestRunAdditional(t *testing.T) {
+func TestBorderlineValue(t *testing.T) {
 	tests := []struct {
 		tasksCount     int
 		workersCount   int
 		maxErrorsCount int
 		err            error
+		nameOfSub      string
 	}{
-		{1, 1, 1, ErrErrorsLimitExceeded},
-		{1, 1, 5, nil},
-		{1, 5, 1, ErrErrorsLimitExceeded},
-		{1, 5, 5, nil},
-		{5, 1, 1, ErrErrorsLimitExceeded},
-		{5, 1, 5, ErrErrorsLimitExceeded},
-		{5, 5, 1, ErrErrorsLimitExceeded},
-		{5, 5, 5, ErrErrorsLimitExceeded},
+		{1, 1, 1, ErrErrorsLimitExceeded, "tasksCount=workersCount=maxErrorsCount=1"},
+		{1, 1, 5, nil, "tasksCount=workersCount=1"},
+		{1, 5, 1, ErrErrorsLimitExceeded, "tasksCount=maxErrorsCount=1"},
+		{1, 5, 5, nil, "tasksCount=1"},
+		{5, 1, 1, ErrErrorsLimitExceeded, "workersCount=maxErrorsCount=1"},
+		{5, 1, 5, ErrErrorsLimitExceeded, "workersCount=1"},
+		{5, 5, 1, ErrErrorsLimitExceeded, "maxErrorsCount=1"},
 	}
 	for _, tc := range tests {
 		tc := tc
 		defer goleak.VerifyNone(t)
-		t.Run(fmt.Sprint(tc), func(t *testing.T) {
+		t.Run(fmt.Sprint("Пограничные значения при значении у tasksCount/workersCount/maxErrorsCount равным единице. Подтест:", tc.nameOfSub), func(t *testing.T) {
 			tasks := make([]Task, 0, tc.tasksCount)
 
 			var runTasksCount int32
@@ -110,28 +110,21 @@ func TestRunAdditional(t *testing.T) {
 	}
 }
 
-func TestRunAdditional2(t *testing.T) {
+func TestM_LE_0(t *testing.T) {
 	tests := []struct {
 		tasksCount     int
 		workersCount   int
 		maxErrorsCount int
 		err            error
+		nameOfSub      string
 	}{
-		// простые тесты
-		{100, 3, 1, nil},
-		{8000, 800, 1, nil},
-		// далее тесты при m<=0: трактуется как игнорировать ошибки
-		{5, 5, 0, nil},
-		{5, 5, -1, nil},
-		{100, 10, 0, nil},
-		{10, 100, 0, nil},
-		{100, 10, -1, nil},
-		{10, 100, -1, nil},
+		{100, 10, 0, nil, "m=0"},
+		{100, 10, -1, nil, "m<0"},
 	}
 	for _, tc := range tests {
 		tc := tc
 		defer goleak.VerifyNone(t)
-		t.Run("tasks without errors (for m<=0)", func(t *testing.T) {
+		t.Run(fmt.Sprint("tasks without errors (for m<=0) at m=0 or m<0. Subtest: ", tc.nameOfSub), func(t *testing.T) {
 			tasks := make([]Task, 0, tc.tasksCount)
 
 			var runTasksCount int32
@@ -151,7 +144,6 @@ func TestRunAdditional2(t *testing.T) {
 			err := Run(tasks, tc.workersCount, tc.maxErrorsCount)
 			elapsedTime := time.Since(start)
 			require.NoError(t, err)
-
 			require.Equal(t, runTasksCount, int32(tc.tasksCount), "not all tasks were completed")
 			require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
 		})
