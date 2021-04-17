@@ -24,10 +24,6 @@ func Run(tasks []Task, n, m int) error {
 				if err != nil {
 					atomic.AddInt32(&totalErrors, 1)
 				}
-				if int(atomic.LoadInt32(&totalErrors)) >= m && m > 0 {
-					<-toWorkerCh // чтение последней записи из канала, чтобы освободить код на стороне записи
-					return
-				}
 			}
 		}()
 	}
