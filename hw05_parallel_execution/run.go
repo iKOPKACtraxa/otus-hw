@@ -28,11 +28,10 @@ func Run(tasks []Task, n, m int) error {
 		}()
 	}
 	for _, task := range tasks {
-		if int(atomic.LoadInt32(&totalErrors)) < m || m <= 0 {
-			toWorkerCh <- task
-		} else {
+		if int(atomic.LoadInt32(&totalErrors)) >= m && m > 0 {
 			break
 		}
+		toWorkerCh <- task
 	}
 	close(toWorkerCh)
 	wg.Wait()
