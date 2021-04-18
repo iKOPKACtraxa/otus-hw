@@ -90,4 +90,28 @@ func TestPipeline(t *testing.T) {
 		require.Len(t, result, 0)
 		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
 	})
+
+	t.Run("in-channel is nil", func(t *testing.T) {
+		require.Panics(t, func() { ExecutePipeline(nil, nil, stages...) }, "The code didn't panic")
+	})
+
+	t.Run("if no stages in input", func(t *testing.T) {
+		stages = []Stage{}
+		in := make(Bi)
+		data := []int{1, 2, 3, 4, 5}
+
+		go func() {
+			for _, v := range data {
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]int, 0, 5)
+		for s := range ExecutePipeline(in, nil, stages...) {
+			result = append(result, s.(int))
+		}
+
+		require.Equal(t, []int{1, 2, 3, 4, 5}, result)
+	})
 }
