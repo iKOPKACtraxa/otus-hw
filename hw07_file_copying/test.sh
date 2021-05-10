@@ -22,4 +22,5 @@ cmp out.txt testdata/out_offset100_limit1000.txt
 cmp out.txt testdata/out_offset6000_limit1000.txt
 
 rm -f go-cp out.txt
+set +x
 echo "PASS"
