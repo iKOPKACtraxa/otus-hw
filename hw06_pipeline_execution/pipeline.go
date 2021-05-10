@@ -14,14 +14,23 @@ func chanCloser(in In, done In) In {
 	if done != nil {
 		newIn := make(Bi)
 		go func() {
+			defer close(newIn)
+			var val interface{}
 			for {
-				val := <-in
 				select {
 				case <-done:
-					close(newIn)
 					return
 				default:
-					newIn <- val
+					select {
+					case <-done:
+						return
+					case val = <-in:
+						select {
+						case <-done:
+							return
+						case newIn <- val:
+						}
+					}
 				}
 			}
 		}()
@@ -42,9 +51,6 @@ func chanCloser(in In, done In) In {
 func ExecutePipeline(in In, done In, stages ...Stage) Out {
 	if in == nil {
 		panic("Input channel is nil")
-	}
-	if len(stages) == 0 {
-		return in
 	}
 	for _, stage := range stages {
 		in = stage(chanCloser(in, done))
