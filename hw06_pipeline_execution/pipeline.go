@@ -15,7 +15,6 @@ func chanCloser(in In, done In) In {
 		newIn := make(Bi)
 		go func() {
 			defer close(newIn)
-			var val interface{}
 			for {
 				select {
 				case <-done:
@@ -24,7 +23,10 @@ func chanCloser(in In, done In) In {
 					select {
 					case <-done:
 						return
-					case val = <-in:
+					case val, ok := <-in:
+						if !ok {
+							return
+						}
 						select {
 						case <-done:
 							return
