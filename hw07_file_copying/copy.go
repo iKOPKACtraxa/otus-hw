@@ -13,27 +13,32 @@ import (
 var (
 	ErrUnsupportedFile       = errors.New("unsupported file")
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
+	ErrLimitOrOffsetIsUnder0 = errors.New("limit or offset is under zero")
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
 	if limit < 0 || offset < 0 {
-		panic("Limit or offset is under zero")
+		return ErrLimitOrOffsetIsUnder0
 	}
 
-	fileSorce, err := os.OpenFile(fromPath, os.O_RDONLY, 0666)
+	fileSource, err := os.OpenFile(fromPath, os.O_RDONLY, 0666)
 	if err != nil {
-		return fmt.Errorf("opening of a sorce file is failed: %w", err)
+		return fmt.Errorf("opening of a source file is failed: %w", err)
 	}
-	defer fileSorce.Close()
+	defer fileSource.Close()
+	_, err = fileSource.Seek(offset, io.SeekStart)
+	if err != nil {
+		return fmt.Errorf("offset setting for a source file is failed: %w", err)
+	}
 
-	infoFileSorce, err := fileSorce.Stat()
+	infoFileSource, err := fileSource.Stat()
 	if err != nil {
-		return fmt.Errorf("file info reading of a sorce file is failed: %w", err)
+		return fmt.Errorf("file info reading of a source file is failed: %w", err)
 	}
-	if infoFileSorce.Size() <= offset && offset != 0 {
+	if infoFileSource.Size() <= offset && offset != 0 {
 		return ErrOffsetExceedsFileSize
 	}
-	if infoFileSorce.Size() == 0 {
+	if infoFileSource.Size() == 0 {
 		return ErrUnsupportedFile
 	}
 
@@ -42,29 +47,22 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return fmt.Errorf("creating of a destination file is failed: %w", err)
 	}
 	defer fileDestination.Close()
-
-	err = fileDestination.Chmod(infoFileSorce.Mode())
+	err = fileDestination.Chmod(infoFileSource.Mode())
 	if err != nil {
-		return fmt.Errorf("chmod from a sorce file to dest file is failed: %w", err)
+		return fmt.Errorf("chmod from a source file to dest file is failed: %w", err)
 	}
 
-	var bytesToCopy int64
-	if limit != 0 && limit < infoFileSorce.Size()-offset {
+	bytesToCopy := infoFileSource.Size() - offset
+	if limit != 0 && limit < bytesToCopy {
 		bytesToCopy = limit
-	} else {
-		bytesToCopy = infoFileSorce.Size() - offset
 	}
 
 	bar := pb.New(int(bytesToCopy)).SetRefreshRate(time.Millisecond * 10)
 	bar.ShowSpeed = true
 	bar.Start()
+	readerSource := bar.NewProxyReader(fileSource)
 
-	_, err = fileSorce.Seek(offset, io.SeekStart)
-	if err != nil {
-		return fmt.Errorf("offset setting for a sorce file is failed: %w", err)
-	}
-	readerSorce := bar.NewProxyReader(fileSorce)
-	_, err = io.CopyN(fileDestination, readerSorce, bytesToCopy)
+	_, err = io.CopyN(fileDestination, readerSource, bytesToCopy)
 	if err != nil {
 		return fmt.Errorf("copying of bytes is failed: %w", err)
 	}
