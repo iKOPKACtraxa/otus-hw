@@ -70,3 +70,5 @@ func TestRunCmdForExitcodes(t *testing.T) {
 		require.Equal(t, 1, returnCode, "return code is not 1")
 	})
 }
+
+// эту строку удалить, и запушить см терминал
