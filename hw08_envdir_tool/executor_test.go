@@ -18,7 +18,7 @@ var (
 		"EMPTY": EnvValue{Value: "SHOULD_BE_EMPTY"},
 	}
 	osArgs            []string = []string{"go-envdir", "testdata/env", "bash", "testdata/echo.sh", "arg1=1", "arg2=2"}
-	osArgsForExitCode []string = []string{"go-envdir", "", "cd", "wrongPath"}
+	osArgsForExitCode []string = []string{"go-envdir", "", "ls", "wrongPath"}
 	refString         string   = `HELLO is ("hello")
 BAR is (bar)
 FOO is (   foo
@@ -67,6 +67,6 @@ func TestRunCmd(t *testing.T) {
 func TestRunCmdForExitcodes(t *testing.T) {
 	t.Run("Test for exitcodes", func(t *testing.T) {
 		returnCode, _ := RunCmd(osArgsForExitCode, nil)
-		require.Truef(t, returnCode == 1, "return code is not 1")
+		require.Equal(t, 1, returnCode, "return code is not 1")
 	})
 }
