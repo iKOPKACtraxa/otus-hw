@@ -1,5 +1,8 @@
 [logger]
-level = "INFO"
-
-# TODO
-# ...
+level = "info"  # you can set: error / warn / info / debug
+file = "../../logs/test.log"
+[httpServer]
+hostPort = ":8081"
+[Storage]
+type = "sql"    # you can set: sql / memory
+connStr = "user=someuser dbname=calendardb sslmode=disable"
