@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - hw*
+      - project*
 
 env:
   GO111MODULE: "on"
@@ -11,7 +12,7 @@ env:
 jobs:
   go_get:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref, 'calendar') }}
+    if: ${{ !contains(github.ref, 'calendar') && !contains(github.ref, 'project')  }}
     steps:
       - name: Extract branch name
         run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
@@ -26,7 +27,7 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref, 'calendar') }}
+    if: ${{ !contains(github.ref, 'calendar') && !contains(github.ref, 'project') }}
     steps:
       - name: Extract branch name
         run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
@@ -42,7 +43,7 @@ jobs:
 
   tests:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref, 'calendar') }}
+    if: ${{ !contains(github.ref, 'calendar') && !contains(github.ref, 'project') }}
     steps:
       - name: Extract branch name
         run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
@@ -72,7 +73,7 @@ jobs:
 
   tests_by_makefile:
     runs-on: ubuntu-latest
-    if: contains(github.ref, 'calendar')
+    if: contains(github.ref, 'project' )
     steps:
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -84,12 +85,12 @@ jobs:
 
       - name: make lint
         run: make lint
-        working-directory: hw12_13_14_15_calendar
+        working-directory: project_rotation
 
       - name: make build
         run: make build
-        working-directory: hw12_13_14_15_calendar
+        working-directory: project_rotation
 
       - name: make test
         run: make test
-        working-directory: hw12_13_14_15_calendar
+        working-directory: project_rotation
