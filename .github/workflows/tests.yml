@@ -12,7 +12,7 @@ env:
 jobs:
   go_get:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref, 'calendar') AND !contains(github.ref, 'project') }}
+    if: ${{ !contains(github.ref, 'calendar') && !contains(github.ref, 'project') }}
     steps:
       - name: Extract branch name
         run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
